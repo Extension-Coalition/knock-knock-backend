@@ -28,31 +28,49 @@ app.MapGet("/healt", () =>
 
 app.MapGet("/domain-info/{domainName}", (string domainName) =>
 {
-    try
-    {
-        IPHostEntry host = Dns.GetHostEntry(domainName);
-        app.Logger.LogInformation("Dns call was made");
-        // TODO: hacer una validacion mejor con hots.AddressList
 
-        app.Logger.LogInformation("Domain address " + host.AddressList);
-        app.Logger.LogInformation("IPHosto to string:" + host.HostName.ToString());
-        object response = new { hostName = host.HostName, inUse = host.AddressList.Length > 0 };
-        return response;
-    }
-    // cuando se da un dominio invalido o no existe tira un error
-    catch (SocketException e)
+    // Check if we get a domain with a .ending or just a name
+    // for now lest asume that we have a clean input from the FE
+
+    // This will return a -1 if not dot found
+    int index = domainName.IndexOf(".");
+
+    // TODO: Create a new logic that takes a name and adds a bunch of .endings
+    // It should return an array of response objects
+    if (index == -1)
     {
-        app.Logger.LogError("SocketException.", e);
-        object response = new { hostName = domainName, inUse = false };
-        return response;
-    }
-    catch
-    {
-        app.Logger.LogError("Something went wrong");
-        return "something went wrong";
+        return "We dont have this logic yet";
     }
 
+    // There is a dot, so we are working with a domain
+    if (index != -1)
+    {
+        // This runs with full domains 
+        try
+        {
+            IPHostEntry host = Dns.GetHostEntry(domainName);
+            object response = new { hostName = host.HostName, inUse = host.AddressList.Length > 0 };
+            return response;
+        }
+        // Dns.GetHostEntry failed to retrive information on this domain name
+        // This (should) means the domain is available
+        catch (SocketException e)
+        {
+            app.Logger.LogError("SocketException.", e);
+            object response = new { hostName = domainName, inUse = false };
+            return response;
+        }
+        catch
+        {
+            app.Logger.LogError("Something went wrong");
+            return "something went wrong";
+        }
+    }
 
+    // Lamda function needs to always have a return
+    // its not smarth enoght to notiwe our conditions on top
+    // will always return something... or not?
+    return "how did you get here";
 })
 .WithName("GetDomainInfo");
 
