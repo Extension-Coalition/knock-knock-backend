@@ -31,38 +31,34 @@ app.MapGet("/domain-info/{domainName}", (string domainName) =>
     // for now lest asume that we have a clean input from the FE
 
     // This will return a -1 if not dot found
-    int index = domainName.IndexOf(".");
+    int indexOfDot = domainName.IndexOf(".");
 
-    // TODO: Create a new logic that takes a name and adds a bunch of .endings
-    // It should return an array of response objects
-    if (index == -1)
+    // takes a name and adds a bunch of .endings
+    // returns an array of response objects
+    if (indexOfDot == -1)
     {
-        return "We dont have this logic yet";
+        String[] endings = new string[] {"com","org","net","xyz","io"};
+
+        // keep the array length in sync witht he domain endings
+        // or learn how to use lists.
+        object[] results = new object[5];
+
+        int iterationIndex = 0;
+
+        foreach (String ending in endings)
+        {          
+            results[iterationIndex] = findDomain(domainName + '.' + ending);
+            iterationIndex = iterationIndex+1;
+        }
+
+        return results;
     }
 
     // There is a dot, so we are working with a domain
-    if (index != -1)
+    if (indexOfDot != -1)
     {
-        // This runs with full domains 
-        try
-        {
-            IPHostEntry host = Dns.GetHostEntry(domainName);
-            object response = new { hostName = host.HostName, inUse = host.AddressList.Length > 0 };
-            return response;
-        }
-        // Dns.GetHostEntry failed to retrive information on this domain name
-        // This (should) means the domain is available
-        catch (SocketException e)
-        {
-            app.Logger.LogError("SocketException.", e);
-            object response = new { hostName = domainName, inUse = false };
-            return response;
-        }
-        catch
-        {
-            app.Logger.LogError("Something went wrong");
-            return "something went wrong";
-        }
+        var result = findDomain(domainName);
+        return result;
     }
 
     // Lamda function needs to always have a return
@@ -74,3 +70,27 @@ app.MapGet("/domain-info/{domainName}", (string domainName) =>
 
 app.Run();
 
+
+object findDomain(String domainName)
+{
+    try
+    {
+        IPHostEntry host = Dns.GetHostEntry(domainName);
+        object response = new { hostName = host.HostName, inUse = host.AddressList.Length > 0 };
+        return response;
+    }
+    // Dns.GetHostEntry failed to retrive information on this domain name
+    // This (should) means the domain is available
+    catch (SocketException e)
+    {
+        app.Logger.LogError("SocketException.", e);
+        object response = new { hostName = domainName, inUse = false };
+        return response;
+    }
+    catch
+    {
+        app.Logger.LogError("Something went wrong");
+        return "something went wrong";
+    }
+
+}
